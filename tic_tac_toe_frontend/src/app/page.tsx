@@ -1,100 +1,194 @@
-import Image from "next/image";
+"use client";
+import { useState } from "react";
 
-export default function Home() {
+/**
+ * Unicode symbols for Horses and Pawns.
+ */
+const HORSE = "♞";
+const PAWN = "♙";
+
+// Colors from design system
+const COLORS = {
+  accent: "#f59e42",    // for winner highlight
+  primary: "#3b82f6",   // horses
+  secondary: "#10b981", // pawns
+};
+
+/**
+ * Calculates winner of tic tac toe.
+ * @param board Array of 9 elements: "H", "P", or null
+ * @returns "H" | "P" | null
+ */
+// PUBLIC_INTERFACE
+function checkWinner(board: Array<"H" | "P" | null>): "H" | "P" | null {
+  const wins = [
+    [0,1,2],[3,4,5],[6,7,8], // rows
+    [0,3,6],[1,4,7],[2,5,8], // cols
+    [0,4,8],[2,4,6],         // diagonals
+  ];
+  for (const [a,b,c] of wins) {
+    if (
+      board[a] &&
+      board[a] === board[b] &&
+      board[a] === board[c]
+    ) {
+      return board[a];
+    }
+  }
+  return null;
+}
+
+// PUBLIC_INTERFACE
+function isDraw(board: Array<"H" | "P" | null>) {
+  return board.every(cell => cell !== null) && !checkWinner(board);
+}
+
+/**
+ * Minimal Chess Icon for Horses and Pawns
+ */
+function ChessIcon({kind, color, size=48}:{kind: "H"|"P", color: string, size?: number}) {
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <span
+      aria-label={kind === "H" ? "Horse" : "Pawn"}
+      style={{
+        fontSize: size,
+        color,
+        lineHeight: 1,
+        display: "inline-block",
+        filter: "drop-shadow(0 1px 0 rgba(0,0,0,0.02))",
+        userSelect: "none"
+      }}
+    >
+      {kind === "H" ? HORSE : PAWN}
+    </span>
+  );
+}
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+/**
+ * Main Game Component
+ */
+export default function Home() {
+  // 'H' = Horse (X, goes first), 'P' = Pawn (O)
+  const [board, setBoard] = useState<Array<"H"|"P"|null>>(Array(9).fill(null));
+  const [player, setPlayer] = useState<"H"|"P">("H");
+  const winner = checkWinner(board);
+  const draw = isDraw(board);
+
+  // PUBLIC_INTERFACE
+  function handleSquareClick(idx: number) {
+    if (board[idx] !== null || winner) return; // ignore filled or finished
+    const update = [...board];
+    update[idx] = player;
+    setBoard(update);
+    setPlayer(player === "H" ? "P" : "H");
+  }
+
+  // PUBLIC_INTERFACE
+  function handleReset() {
+    setBoard(Array(9).fill(null));
+    setPlayer("H");
+  }
+
+  // Status Message
+  let message = "";
+  if(winner) {
+    message = winner === "H"
+      ? "Horse wins! (♞)"
+      : "Pawn wins! (♙)";
+  } else if(draw) {
+    message = "It's a draw!";
+  } else {
+    message = player === "H" ? "Horse’s turn (♞)" : "Pawn’s turn (♙)";
+  }
+
+  // Responsive board size
+  // On mobile: fit to width
+  // On desktop: max 400px
+  return (
+    <div className="min-h-screen flex flex-col justify-center items-center px-4 py-8 bg-[var(--background)] font-[family-name:var(--font-geist-sans)]">
+      <div className="w-full max-w-xs sm:max-w-md flex flex-col items-center">
+        <h1 className="text-3xl sm:text-4xl font-bold text-center mb-2 tracking-tight" style={{color:COLORS.primary, letterSpacing:0.5}}>
+          Horses vs Pawns
+        </h1>
+        <p className="text-sm mb-6 text-gray-600 text-center" style={{maxWidth:320}}>
+          Tic tac toe — Modern. Minimal. Play with horses (<b>♞</b>) and pawns (<b>♙</b>).
+        </p>
+        <div
+          className="mb-6"
+          aria-live="polite"
+        >
+          <span
+            className="text-lg font-semibold"
+            style={{
+              color: winner ? COLORS.accent :
+                    player === "H" ? COLORS.primary : COLORS.secondary
+            }}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            {message}
+          </span>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+        <div className="w-full aspect-square">
+          <div
+            className="grid grid-cols-3 grid-rows-3 gap-[1vmin] sm:gap-2 w-full h-full rounded-xl bg-gray-200"
+            style={{boxShadow:"0 2px 8px 0 rgba(0,0,0,0.03)"}}
+            role="grid"
+          >
+            {board.map((cell, i) => {
+              const isWinning = (() => {
+                if (!winner) return false;
+                // Find winning combination
+                const winning = [
+                  [0,1,2],[3,4,5],[6,7,8],
+                  [0,3,6],[1,4,7],[2,5,8],
+                  [0,4,8],[2,4,6],
+                ].find(([a,b,c]) =>
+                  board[a] && board[a] === board[b] && board[a] === board[c] && board[a] === board[i]
+                );
+                return Boolean(winning && winning.includes(i));
+              })();
+              return (
+                <button
+                  key={i}
+                  aria-label={`cell ${i+1} ${cell === "H" ? "Horse" : cell === "P" ? "Pawn": ""}`}
+                  onClick={() => handleSquareClick(i)}
+                  className="flex items-center justify-center bg-white rounded-lg min-h-0 aspect-square w-full h-full transition-colors
+                    text-4xl sm:text-5xl border-none shadow-sm hover:bg-gray-100 focus:outline-none"
+                  style={{
+                    cursor: cell || winner ? "default" : "pointer",
+                    border: isWinning ? `2px solid ${COLORS.accent}` : "2px solid rgba(0,0,0,0.03)",
+                    background: isWinning ? "#fff6ec" : undefined,
+                  }}
+                  disabled={!!cell || !!winner}
+                  tabIndex={0}
+                >
+                  {cell &&
+                    <ChessIcon
+                      kind={cell}
+                      color={cell === "H" ? COLORS.primary : COLORS.secondary}
+                      size={52}
+                    />
+                  }
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <div className="flex w-full justify-between mt-8 gap-4">
+          <button
+            onClick={handleReset}
+            className="flex-1 rounded-lg px-4 py-2 font-semibold text-white transition-colors min-w-20 shadow-sm"
+            style={{
+              background: COLORS.accent,
+              letterSpacing: 0.2
+            }}
+            aria-label="Reset game"
+          >
+            Reset
+          </button>
+        </div>
+      </div>
+      <footer className="mt-16 text-gray-400 text-xs text-center opacity-90">
+        Built with Next.js. Horses © &nbsp;<span role="img" aria-label="horse">🐴</span>&nbsp; and Pawns &nbsp;<span role="img" aria-label="pawn">♟</span>
       </footer>
     </div>
   );
